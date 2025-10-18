@@ -1,17 +1,16 @@
-# Node-Web
+# Node-Web One-Click Setup
 
-This repository contains a **one-click setup script** for deploying a crypto node on a VPS with SSL. It installs Nginx, configures your node to run on a subdomain, obtains a Let's Encrypt certificate, and sets up firewall rules.
-
+This repository provides a **one-click setup script** to deploy your crypto node on a VPS with a secure HTTPS connection using your subdomain `gensen.safeinr.xyz`. The script installs and configures Nginx, sets up a reverse proxy for your node, obtains a free Let’s Encrypt SSL certificate, and configures firewall rules.  
 
 ---
 
 ## Features
 
 - Automatic installation of Nginx and Certbot
-- Configure Nginx to proxy your node on localhost
-- Obtain a free Let's Encrypt SSL certificate for your domain/subdomain
-- Firewall configuration for HTTP, HTTPS, and your node port
-- Easy to reuse and modify
+- Reverse proxy configuration for your node on `localhost:3443`
+- Obtain a free Let’s Encrypt SSL certificate for `gensen.safeinr.xyz`
+- Firewall configuration for HTTP (80), HTTPS (443), and node port (3443)
+- Easy one-line execution via `curl` or `wget`
 
 ---
 
@@ -19,16 +18,19 @@ This repository contains a **one-click setup script** for deploying a crypto nod
 
 - VPS running Ubuntu/Debian
 - Root or sudo access
-- Domain name (e.g., `safeinr.xyz`) with a subdomain pointing to your VPS
-- Node running locally on a specific port (default 3443)
-- Git installed on your local machine (optional for cloning)
+- Domain name `safeinr.xyz` with a subdomain `gensen.safeinr.xyz` pointing to your VPS IP
+- Node running locally on port `3443`
+- Ports 80 and 443 reachable from the internet for SSL issuance
 
 ---
 
-## Setup Instructions
+## One-Click Setup
 
-1. Clone the repository on your VPS:
+Run the following command on your VPS to install and configure everything automatically:
 
 ```bash
-git clone https://github.com/askshreesen/Node-Web.git
-cd Node-Web
+# Using curl
+curl -sSL https://raw.githubusercontent.com/askshreesen/Node-Web/main/setup-node-ssl.sh | bash
+
+# Or using wget
+wget -qO- https://raw.githubusercontent.com/askshreesen/Node-Web/main/setup-node-ssl.sh | bash
