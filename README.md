@@ -2,6 +2,7 @@
 
 This repository contains a **one-click setup script** for deploying a crypto node on a VPS with SSL. It installs Nginx, configures your node to run on a subdomain, obtains a Let's Encrypt certificate, and sets up firewall rules.
 
+
 ---
 
 ## Features
