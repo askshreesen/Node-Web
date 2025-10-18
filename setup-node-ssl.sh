@@ -1,40 +1,40 @@
 #!/bin/bash
 
 # -----------------------------
-# Node-Web VPS Setup Script
+# Node-Web Full Setup Script
 # -----------------------------
-# Purpose: Setup a crypto node behind Nginx with SSL
 # Domain: gensen.safeinr.xyz
-# Node Port: 3443
-# Email: gensen@safeinr.xyz
+# Node backend port: 3443
+# Node frontend port: 3000
+# Email for SSL: gensen@safeinr.xyz
 # -----------------------------
 
 DOMAIN="gensen.safeinr.xyz"
-NODE_PORT=3443
+NODE_BACKEND_PORT=3443
+NODE_FRONTEND_PORT=3000
 EMAIL="gensen@safeinr.xyz"
 
-echo "Starting setup for $DOMAIN ..."
+echo "Starting full setup for $DOMAIN ..."
 
-# 1. Update system and install required packages
+# 1. Update system
 apt update && apt upgrade -y
+
+# 2. Install required packages
 apt install -y nginx certbot python3-certbot-nginx ufw git curl wget
 
-# 2. Configure firewall
+# 3. Configure firewall
 ufw allow 80/tcp
 ufw allow 443/tcp
-ufw allow $NODE_PORT/tcp
+ufw allow $NODE_BACKEND_PORT/tcp
 ufw --force enable
 
-# 3. Remove any existing Nginx config for this domain
-if [ -f /etc/nginx/sites-enabled/$DOMAIN ]; then
-    rm -f /etc/nginx/sites-enabled/$DOMAIN
-fi
-if [ -f /etc/nginx/sites-available/$DOMAIN ]; then
-    rm -f /etc/nginx/sites-available/$DOMAIN
-fi
+# 4. Remove old config if exists
+rm -f /etc/nginx/sites-enabled/$DOMAIN
+rm -f /etc/nginx/sites-available/$DOMAIN
 
-# 4. Create HTTP-only Nginx config (before SSL)
+# 5. Create Nginx config
 cat > /etc/nginx/sites-available/$DOMAIN <<EOL
+# Redirect HTTP to HTTPS
 server {
     listen 80;
     server_name $DOMAIN;
@@ -46,7 +46,34 @@ server {
     }
 
     location / {
-        proxy_pass http://127.0.0.1:$NODE_PORT;
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+# HTTPS server
+server {
+    listen 443 ssl http2;
+    server_name $DOMAIN;
+
+    # SSL certificates (Certbot will fill automatically)
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # Proxy backend (node API / signing)
+    location /node/ {
+        proxy_pass http://127.0.0.1:$NODE_BACKEND_PORT/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 120s;
+    }
+
+    # Proxy frontend (node UI)
+    location / {
+        proxy_pass http://127.0.0.1:$NODE_FRONTEND_PORT/;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -56,36 +83,22 @@ server {
 }
 EOL
 
-# 5. Enable site and reload Nginx
+# 6. Enable site and test Nginx
 ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/
-nginx -t && systemctl reload nginx
+nginx -t
+systemctl reload nginx
 
-# 6. Obtain SSL certificate using Certbot
+# 7. Obtain SSL with Certbot
 certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m $EMAIL
 
-# 7. Optional: Serve node on external port 3443 over HTTPS
-# Uncomment below if you want HTTPS directly on 3443
-# cat > /etc/nginx/sites-available/$DOMAIN <<EOL
-# server {
-#     listen 3443 ssl;
-#     server_name $DOMAIN;
-#     ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-#     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-# 
-#     location / {
-#         proxy_pass http://127.0.0.1:$NODE_PORT;
-#         proxy_set_header Host \$host;
-#         proxy_set_header X-Real-IP \$remote_addr;
-#         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-#         proxy_set_header X-Forwarded-Proto \$scheme;
-#         proxy_read_timeout 120s;
-#     }
-# }
-# EOL
-# systemctl reload nginx
-# ufw allow 3443/tcp
+# 8. Final reload of Nginx
+systemctl reload nginx
 
 echo ""
+echo "------------------------------------"
 echo "Setup complete!"
-echo "Your node is now accessible at: https://$DOMAIN"
-echo "Node backend port on VPS: $NODE_PORT"
+echo "Frontend accessible at: https://$DOMAIN/"
+echo "Backend accessible at: https://$DOMAIN/node/"
+echo "Node backend port on VPS: $NODE_BACKEND_PORT"
+echo "Node frontend port on VPS: $NODE_FRONTEND_PORT"
+echo "------------------------------------"
