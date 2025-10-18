@@ -31,6 +31,3 @@ Run the following command on your VPS to install and configure everything automa
 ```bash
 # Using curl
 curl -sSL https://raw.githubusercontent.com/askshreesen/Node-Web/main/setup-node-ssl.sh | bash
-
-# Or using wget
-wget -qO- https://raw.githubusercontent.com/askshreesen/Node-Web/main/setup-node-ssl.sh | bash
