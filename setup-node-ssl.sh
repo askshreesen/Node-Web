@@ -1,23 +1,29 @@
 #!/bin/bash
 
-# Variables - CHANGE these to your own settings
-DOMAIN="node.safeinr.xyz"
+# =========================
+# One-Click Node Setup Script
+# Domain: gensen.safeinr.xyz
+# Node Port: 3443
+# Email for SSL: gensen@safeinr.xyz
+# =========================
+
+DOMAIN="gensen.safeinr.xyz"
 NODE_PORT=3443
-EMAIL="your-email@example.com" # For Let's Encrypt notifications
+EMAIL="gensen@safeinr.xyz"
 
-# Update system
+echo "Starting setup for $DOMAIN ..."
+
+# 1. Update and install packages
 apt update && apt upgrade -y
+apt install -y nginx certbot python3-certbot-nginx ufw git curl wget
 
-# Install required packages
-apt install -y nginx certbot python3-certbot-nginx ufw git
-
-# Configure firewall
+# 2. Configure firewall
 ufw allow 80/tcp
 ufw allow 443/tcp
 ufw allow $NODE_PORT/tcp
 ufw --force enable
 
-# Nginx configuration
+# 3. Create Nginx config
 NGINX_CONF="/etc/nginx/sites-available/$DOMAIN"
 
 cat > $NGINX_CONF <<EOL
@@ -52,20 +58,14 @@ server {
 }
 EOL
 
-# Enable site and reload Nginx
+# 4. Enable Nginx site and reload
 ln -sf $NGINX_CONF /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 
-# Obtain SSL certificate via Certbot
+# 5. Obtain SSL certificate
 certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m $EMAIL
 
-# Save script to GitHub instructions
-echo "Script ready. You can save it to GitHub with:"
-echo "1. git init"
-echo "2. git add setup-node-ssl.sh"
-echo "3. git commit -m 'Add node SSL setup script'"
-echo "4. git branch -M main"
-echo "5. git remote add origin <YOUR_GITHUB_REPO_URL>"
-echo "6. git push -u origin main"
-
-echo "Setup complete! Your node is now accessible at https://$DOMAIN"
+echo ""
+echo "Setup complete!"
+echo "Your node is now accessible at: https://$DOMAIN"
+echo "Node backend port on VPS: $NODE_PORT"
